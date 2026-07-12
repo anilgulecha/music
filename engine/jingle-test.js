@@ -4,9 +4,11 @@
 // Record:  node engine/jingle-test.js --record   /  tests.html?record
 import { test, eq, assert, RECORD, recordGolden, loadGolden } from "./testkit.js";
 import {
-  composeJingle, renderJingle, motifFromText, normalizeJingleSpec,
-  jingleToHash, jingleFromHash, JINGLE_VIBES, JINGLE_LENGTH,
+  composeJingle, renderJingle, composeMotif, renderMotif,
+  suggestMotifs, suggestArrangements, motifFromText, normalizeJingleSpec,
+  jingleToHash, jingleFromHash, JINGLE_VIBES, JINGLE_LENGTH, JINGLE_PADS,
 } from "./engine.js";
+import { MODES } from "./theory.js";
 import { fingerprint, closeFP } from "./audio-fp.js";
 
 const r6 = (x) => +(+x).toFixed(6);
@@ -72,6 +74,53 @@ test("every length × vibe lands in the 6–30s envelope, events inside the song
   }
 });
 
+test("the tagline never changes the name's tune", () => {
+  for (const text of ["acme", "wonderfully long brand name", ""]) {
+    const bare = composeJingle({ text, seed: 3 });
+    const tagged = composeJingle({ text, seed: 3, tagline: "totally different words" });
+    eq(tagged.motifIdx, bare.motifIdx, text);
+    eq(tagged.motifBeats, bare.motifBeats, text);
+  }
+});
+
+test("composeMotif states exactly the tune of the full piece", () => {
+  for (const spec of Object.values(JINGLE_CASES)) {
+    const m = composeMotif(spec), full = composeJingle(spec);
+    eq(m.motifIdx, full.motifIdx);
+    eq(m.motifBeats, full.motifBeats);
+    for (const e of m.scheduled) assert(e.voice === "lead", "motif preview is lead-only");
+    assert(m.scheduled.length === m.motifIdx.length, "one note per degree");
+  }
+});
+
+test("suggestMotifs: 6 deterministic takes, card 0 is the anchor", () => {
+  for (const text of ["kal", "Acme Corp", ""]) {
+    const a = suggestMotifs(text), b = suggestMotifs(text);
+    eq(a, b, "deterministic");
+    assert(a.length === 6, "six cards");
+    eq(a[0], { seed: 0, key: 5, mode: "ionian", tempo: 112 }, "anchor = ident verdict");
+    for (const m of a) {
+      assert(m.key >= 0 && m.key <= 11 && MODES[m.mode] && m.tempo >= 88 && m.tempo <= 138 + 1, "fields valid");
+      eq(normalizeJingleSpec({ text, ...m }).mode, m.mode, "normalize keeps it");
+    }
+  }
+});
+
+test("suggestArrangements: 8 deterministic cards, the length axis fully covered", () => {
+  for (const base of [{ text: "kal" }, { text: "gulecha", lead: "bansuri", seed: 4 }]) {
+    const a = suggestArrangements(base), b = suggestArrangements(base);
+    eq(a, b, "deterministic");
+    assert(a.length === 8, "eight cards");
+    eq(a.map((x) => x.lengthSec), [8, 10, 12, 15, 18, 21, 25, 30], "length spread");
+    for (const arr of a) {
+      assert(JINGLE_PADS.includes(arr.pad), "pad valid");
+      const n = normalizeJingleSpec({ ...base, ...arr });
+      eq(n.lengthSec, arr.lengthSec, "normalize keeps length");
+      eq(n.pad, arr.pad, "normalize keeps pad");
+    }
+  }
+});
+
 /* ---- goldens ---------------------------------------------------------- */
 if (RECORD) {
   test("record jingle golden", async () => {
@@ -99,5 +148,13 @@ if (RECORD) {
       const errs = closeFP(fingerprint(r.audioBuffer), want[name]);
       if (errs.length) throw new Error(`${name}: ${errs.join("; ")}`);
     }
+  });
+  test.browser("renderMotif is deterministic (within tolerance) and audible", async () => {
+    const spec = { text: "Acme Corp", lead: "marimba", tempo: 120 };
+    const a = fingerprint((await renderMotif(spec)).audioBuffer);
+    const b = fingerprint((await renderMotif(spec)).audioBuffer);
+    const errs = closeFP(a, b);
+    if (errs.length) throw new Error(errs.join("; "));
+    if (!(a.peak > 0.05)) throw new Error("motif preview is silent: peak " + a.peak);
   });
 }

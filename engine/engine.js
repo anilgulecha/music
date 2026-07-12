@@ -27,7 +27,8 @@ export { fitCanvas, drawViz, cueAt } from "./viz.js";
 export { codeToWords, wordsToCode, decodeSong } from "./songcode.js";
 export { playlistFor, identityHues, normalizeName, dateCode, PLAYLIST_SIZE } from "./playlist.js";
 export {
-  composeJingle, renderJingle, motifFromText, normalizeJingleSpec,
+  composeJingle, renderJingle, composeMotif, renderMotif,
+  suggestMotifs, suggestArrangements, motifFromText, normalizeJingleSpec,
   jingleToHash, jingleFromHash,
   JINGLE_VIBES, JINGLE_LEADS, JINGLE_PADS, JINGLE_ENDINGS, JINGLE_LENGTH, JINGLE_VERSION,
 } from "./jingle.js";

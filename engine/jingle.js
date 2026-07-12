@@ -83,7 +83,21 @@ function textHash(s) {
   for (const ch of s) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); }
   return h >>> 0;
 }
+const fold = (h, seed) => ((h ^ Math.imul(seed + 1, 0x9E3779B9)) >>> 0);
+// The motif is derived from text+seed ONLY, the answer from tagline+seed —
+// so adding/editing a tagline can never change the tune of the name (the
+// wizard picks the tune in step 1; later steps must not shift it).
+const motifSeed = (s) => fold(textHash(s.text.toLowerCase()), s.seed);
+const tagSeed = (s) => fold(textHash('\u0001' + s.tagline.toLowerCase()), s.seed);
 const specSeed = (s) => ((textHash(s.text.toLowerCase() + '\n' + s.tagline.toLowerCase()) ^ Math.imul(s.seed + 1, 0x9E3779B9)) >>> 0);
+
+// shared by composeJingle + composeMotif so the tune you audition in the
+// wizard is exactly the tune the full piece states (same RNG draw order)
+function deriveMotif(spec) {
+  const rng = new RNG(motifSeed(spec) ^ 0x51ed270b);
+  const idx = shapeContour(motifFromText(spec.text) || randomMotif(rng));
+  return { idx, beats: motifRhythm(rng, idx.length) };
+}
 
 /* ---- text → motif (the K·A·L rule, generalized) --------------------- */
 const charDeg = (ch) => {
@@ -155,15 +169,13 @@ const sum = (a) => a.reduce((s, x) => s + x, 0);
 
 export function composeJingle(input) {
   const spec = normalizeJingleSpec(input);
-  const rng = new RNG(specSeed(spec) ^ 0x51ed270b);
-  const motifIdx = shapeContour(motifFromText(spec.text) || randomMotif(rng));
-  const motifBeats = motifRhythm(rng, motifIdx.length);
+  const { idx: motifIdx, beats: motifBeats } = deriveMotif(spec);
   let tagIdx = null, tagBeats = null;
   const tagDegs = motifFromText(spec.tagline);
   if (tagDegs) {
     const use = tagDegs.length <= 4 ? tagDegs : [...tagDegs.slice(0, 3), tagDegs[tagDegs.length - 1]];
     tagIdx = shapeContour(use);
-    tagBeats = motifRhythm(rng, tagIdx.length);
+    tagBeats = motifRhythm(new RNG(tagSeed(spec) ^ 0x2c1b3c6d), tagIdx.length);
   }
 
   // -- pick sections to fit the asked length, then micro-fit the tempo --
@@ -280,7 +292,80 @@ export function composeJingle(input) {
     reverb: spec.reverb, echo: spec.echo, master: 0.8, seed,
   };
 
-  return { spec, params, scheduled, automation, displayCues, songEnd, seed, tempo: params.tempo, plan };
+  return { spec, params, scheduled, automation, displayCues, songEnd, seed, tempo: params.tempo, plan, motifIdx, motifBeats };
+}
+
+/* The bare tune — just the statement, lead only, at the spec's own tempo
+   (no length fitting). What the wizard's step-1 cards audition; shares
+   deriveMotif with composeJingle, so the rhythm/contour are identical. */
+export function composeMotif(input) {
+  const spec = normalizeJingleSpec(input);
+  const { idx, beats } = deriveMotif(spec);
+  const bt = 60 / spec.tempo;
+  const scheduled = [];
+  let t = 0;
+  for (let i = 0; i < idx.length; i++) {
+    const last = i === idx.length - 1;
+    scheduled.push({
+      t, voice: 'lead', midi: degMidi(spec, idx[i]),
+      durSec: beats[i] * bt * 0.92, vel: Math.min(0.95, 0.8 * (last ? 1.06 : 1)),
+    });
+    t += beats[i] * bt;
+  }
+  const params = {
+    tempo: spec.tempo, key: String(spec.key), mode: spec.mode, meter: '4/4',
+    lengthSec: t + 0.4, arc: 'arch', humanity: spec.humanity, swing: 0,
+    mix: { lead: 0.85, counter: 0, pad: 0, arp: 0, bass: 0, perc: 0 },
+    leadTimbre: spec.lead, padTimbre: 'warm', percKit: 'kit',
+    reverb: spec.reverb, echo: spec.echo, master: 0.8, seed: specSeed(spec) || 1,
+  };
+  const automation = [{ t: 0, tideCutoff: 18000, delayTime: Math.min(1.9, 0.75 * bt) }];
+  return { spec, params, scheduled, automation, displayCues: [{ t: 0, section: 'statement' }], songEnd: t + 0.4, motifIdx: idx, motifBeats: beats };
+}
+
+/* ---- wizard suggesters (deterministic, but NOT part of the URL contract:
+   the chosen values are always written into the URL explicitly, so these
+   can be re-tuned later without breaking any shared link) ---------------- */
+
+/** Six takes on a name's tune: card 0 is the anchor (F · ionian · 112 — the
+    ident-lab verdict); 1–5 draw key/mode/tempo from hash(text)^i, and the
+    seed itself re-rolls the rhythm. Each entry is a partial spec. */
+export function suggestMotifs(text) {
+  const out = [{ seed: 0, key: 5, mode: 'ionian', tempo: 112 }];
+  const modes = [['ionian', 3], ['lydian', 2], ['mixolydian', 2], ['dorian', 1.5],
+    ['aeolian', 1.5], ['melodicMinor', 0.6], ['harmonicMinor', 0.6]];
+  const h = textHash(String(text).toLowerCase());
+  for (let i = 1; i < 6; i++) {
+    const r = new RNG(fold(h, i) ^ 0x6b79c1a5);
+    out.push({ seed: i, key: r.int(0, 11), mode: r.weighted(modes), tempo: r.int(88, 138) });
+  }
+  return out;
+}
+
+const INDIAN = new Set(['bansuri', 'santoor', 'sarangi', 'shehnai', 'harmonium']);
+const ARR_LENGTHS = [8, 10, 12, 15, 18, 21, 25, 30];
+
+/** Eight arrangements for a chosen tune — lengths spread by card index (the
+    length axis is fully covered); pad/band/kit/ending/space seeded from the
+    motif identity. Each entry is a partial spec to merge over the current one. */
+export function suggestArrangements(input) {
+  const s = normalizeJingleSpec(input);
+  const indian = INDIAN.has(s.lead);
+  return ARR_LENGTHS.map((lengthSec, j) => {
+    const r = new RNG((motifSeed(s) ^ Math.imul(j + 1, 0x9e3779b1)) >>> 0);
+    const pad = r.weighted([['warm', 2], ['halo', 1.5], ['choir', 1], ['strings', 1.5],
+      ['hollow', 0.7], ['tanpura', indian ? 1.5 : 0.4], ['', 0.8]]);
+    const perc = r.chance(0.6);
+    const tabla = r.chance(indian ? 0.5 : 0.15);   // drawn unconditionally: fixed draw count
+    return {
+      lengthSec, pad,
+      bass: r.chance(0.75), perc, arp: r.chance(0.55),
+      percKit: perc && tabla ? 'tabla' : 'kit',
+      ending: r.chance(0.7) ? 'resolved' : 'open',
+      reverb: Math.round(r.range(0.25, 0.6) * 20) / 20,
+      echo: Math.round(r.range(0, 0.35) * 20) / 20,
+    };
+  });
 }
 
 /* ---- offline render through the real engine -------------------------- */
@@ -292,13 +377,11 @@ function makeAudioBuffer(numCh, length, sr) {   // same helper renderSong uses
   return new OfflineCtx(numCh, length, sr).createBuffer(numCh, length, sr);
 }
 
-export async function renderJingle(input, opts = {}) {
+async function renderComposed(composed, opts = {}) {
   const onProgress = opts.onProgress || (() => {});
-  onProgress({ phase: 'composing', progress: 0 });
-  const composed = composeJingle(input);
   const { spec, params, songEnd } = composed;
   const sr = opts.sampleRate || 44100;
-  const revSec = clamp(2.0 + spec.reverb * 2.0, 2.0, 3.4);
+  const revSec = opts.reverbSeconds != null ? opts.reverbSeconds : clamp(2.0 + spec.reverb * 2.0, 2.0, 3.4);
   onProgress({ phase: 'rendering', progress: 0 });
   // renderSegment reads mixes/space from A.params during its synchronous
   // buildGraph (before its first await), so set/restore like auditionVoice.
@@ -314,6 +397,16 @@ export async function renderJingle(input, opts = {}) {
   audioBuffer.getChannelData(1).set(seg.channels[1]);
   onProgress({ phase: 'rendering', progress: 1 });
   return { audioBuffer, duration: songEnd, totalSec: seg.length / sr, spec, params, composed, sampleRate: sr };
+}
+
+export async function renderJingle(input, opts = {}) {
+  (opts.onProgress || (() => {}))({ phase: 'composing', progress: 0 });
+  return renderComposed(composeJingle(input), opts);
+}
+
+/** Render just the tune (statement, lead only) — the wizard's live preview. */
+export async function renderMotif(input, opts = {}) {
+  return renderComposed(composeMotif(input), { reverbSeconds: 2.0, ...opts });
 }
 
 /* ---- URL codec: one URL = one jingle (v1, versioned) ------------------ */
