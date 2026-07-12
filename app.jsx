@@ -59,6 +59,8 @@ const LEAD_OPTS = [
   ["organ", "Organ (drawbars)"], ["pure", "Pure (sine)"],
   ["bansuri", "Bansuri (bamboo flute)"], ["whistle", "Whistle"], ["santoor", "Santoor (hammered)"],
   ["sarangi", "Sarangi (bowed)"], ["shehnai", "Shehnai (double-reed)"], ["harmonium", "Harmonium (reed organ)"],
+  ["chime", "Chime (ident bell)"], ["marimba", "Marimba (struck bar)"], ["bell", "Bell (FM, ringing)"],
+  ["nylon", "Nylon (plucked string)"], ["soft", "Soft (rounded sustain)"],
 ];
 const PAD_OPTS = [
   ["warm", "Warm (analog)"], ["halo", "Halo (glass air)"], ["choir", "Choir (vowel formants)"],
@@ -709,6 +711,11 @@ const ROSTER = [
       { id: "lead-sarangi", voice: "lead", timbre: "sarangi", name: "Sarangi", tag: "bowed, vocal",      desc: "The most vocal of bowed strings — a large meend, expressive vibrato, and a vowel formant for that singing quality." },
       { id: "lead-shehnai", voice: "lead", timbre: "shehnai", name: "Shehnai", tag: "double-reed",       desc: "Bright, nasal and penetrating — a reedy double-reed with a nasal formant and reedy vibrato." },
       { id: "lead-harmonium", voice: "lead", timbre: "harmonium", name: "Harmonium", tag: "reed organ",  desc: "A sustained reed organ — stacked sawtooth reeds with a gentle bellows shimmer." },
+      { id: "lead-chime",   voice: "lead", timbre: "chime",   name: "Chime",   tag: "ident bell",      desc: "A pure ringing chime with a fast-dying metallic ping — the sonic-logo voice, ported from ident-lab." },
+      { id: "lead-marimba", voice: "lead", timbre: "marimba", name: "Marimba", tag: "struck bar",      desc: "A warm struck bar — fast-decaying sine with a brief bright strike partial." },
+      { id: "lead-bell",    voice: "lead", timbre: "bell",    name: "Bell",    tag: "FM, ringing",     desc: "A deep FM bell whose inharmonic shimmer slowly settles as it rings out." },
+      { id: "lead-nylon",   voice: "lead", timbre: "nylon",   name: "Nylon",   tag: "plucked string",  desc: "A plucked string — a saw through a fast-closing lowpass, round and intimate." },
+      { id: "lead-soft",    voice: "lead", timbre: "soft",    name: "Soft",    tag: "rounded sustain", desc: "A rounded, sustained tone — triangle through a gentle lowpass; the quietest lead." },
     ],
   },
   {
