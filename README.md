@@ -51,6 +51,30 @@ the background (“go have a coffee”). Baked audio is cached in IndexedDB
 The original knob-studio lives on at `#/studio` (legacy `#/song/<seed>?…` URLs
 still work), plus `#/roster` and `#/about`.
 
+## The jingle maker (`jingle.html`)
+
+A second, standalone app on the same engine: **a name (+ optional tagline)
+becomes a 6–30 second sonic logo**, generalized from the `ident-lab` prototype
+(the kalviumjr idents).
+
+- **The K·A·L rule:** every letter maps to a scale degree (`letterIndex mod 7`
+  — K→fa, A→do, L→sol; digits and unicode letters map too), the contour is
+  folded singable, a seeded RNG shapes the rhythm. No text ⇒ a pure seeded
+  motif. The tagline becomes an **answering phrase** before the close.
+- **Sections stack to fit the asked length** — statement · restatement (octave
+  double, pad, bass) · turn (IV→V, arps, drums) · answer · close — then the
+  tempo micro-fits (±15%). The **ending** knob resolves home or stays open.
+- **Vibes** are preset bundles (bright = the ident-lab locked verdict · playful
+  · warm · bold · dreamy · classic · desi w/ tabla · minimal); a fine-tune panel
+  exposes the raw knobs (voice, pad, mode, key, tempo, toggles, space).
+- **One URL = one jingle** (versioned): `jingle.html#/j/<text>/<seed>?v=1&len=…`
+  — identity in the path, knobs in the query. Opening a shared link auto-bakes
+  the exact same audio (byte-identical encodes). Downloads: **mp3 / opus / wav**.
+- Everything renders through the **real engine** — `engine/jingle.js` →
+  `renderSegment` → `graph.js` + `voices.js` — no parallel mock synth. Five
+  lead voices were ported in from ident-lab for it (chime · marimba · bell ·
+  nylon · soft); they're on `#/roster` and in the studio too.
+
 ## How the studio works: render → encode → play (no live tuning)
 
 There is **no on-the-fly tuning**. You set the knobs and hit **Generate**:
@@ -160,6 +184,7 @@ Routing is hash-based (works on any static host):
 | `index.html` | React + daisyUI (light theme) CDN shell. Maps `engine` in the importmap. |
 | `engine/`    | The synth, split into focused ES modules (see below). **DOM-free.** |
 | `app.jsx`    | React UI: transport, control panels, meters, the dark viz "stage", tooltips, and the hash router. |
+| `jingle.html` / `jingle.jsx` | The jingle maker — same CDN shell pattern, own hash routes (`#/j/…`). |
 
 ### The `engine/` modules
 
@@ -176,6 +201,7 @@ importmap and `app.jsx` never change. Internals:
 | `encoders.js` | `bufferToWav` / `encodeSong` (+ opus/mp3/webm codecs & muxers). |
 | `viz.js` | `fitCanvas` / `drawViz` / `cueAt`. |
 | `rng.js` / `theory.js` | seeded RNG + math; scales, meters, arcs, rhythm. |
+| `jingle.js` | `composeJingle` / `renderJingle` + the jingle URL codec (v1). |
 
 The split was done under a **golden-master safety net** (see Tests): the
 composition and audio outputs are byte/fingerprint-identical to the pre-split
@@ -188,16 +214,22 @@ under **Node** or in a **browser** (`test.browser(...)` cases auto-skip without
 Web Audio). Convention: `foo.js` is tested by `foo-test.js`.
 
 ```bash
-node engine/tests.mjs          # pure suites (rng, theory, composer, wav, cueAt)
-# browser suites (render, voices, encode): serve the repo, open engine/tests.html
-# regenerate baselines:  node engine/composer-test.js --record  /  tests.html?record
+node engine/tests.mjs           # pure suites (rng, theory, composer, wav, cueAt, jingle)
+node engine/tests-browser.mjs   # Web Audio suites (render, voices, encode, jingle render)
+#   … or serve the repo and open engine/tests.html (live progress in the page)
+# regenerate baselines:
+#   node engine/composer-test.js --record      (any node-recordable golden)
+#   node engine/tests-browser.mjs --record voices   (named browser goldens; or tests.html?record)
 ```
 
-- **composer** is locked bit-exact (rounded 1e-6 so V8 `Math.*` ULP noise is
-  cross-environment stable).
-- **render / voices** compare a perceptual fingerprint (peak / RMS / 16-window
-  RMS envelope) within tolerance, because Web Audio's offline render is *not*
-  bit-reproducible (echo/convolver tails vary ~1e-9 run-to-run).
+`tests-browser.mjs` drives `tests.html` under headless Chromium; playwright and
+miniserve are **global** tools (`npm root -g`), per the no-`node_modules` charter.
+
+- **composer / jingle composer** are locked bit-exact (rounded 1e-6 so V8
+  `Math.*` ULP noise is cross-environment stable).
+- **render / voices / jingle render** compare a perceptual fingerprint (peak /
+  RMS / 16-window RMS envelope) within tolerance, because Web Audio's offline
+  render is *not* bit-reproducible (echo/convolver tails vary ~1e-9 run-to-run).
 
 ## Reactization notes
 

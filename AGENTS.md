@@ -31,6 +31,8 @@ both pre-emptively.
 ```
 index.html   CDN shell + importmap ("engine" -> ./engine/engine.js)
 app.jsx      React UI: transport, panels, viz stage, hash router, roster
+jingle.html  the jingle maker: a name → a 6–30s sonic logo (own shell)
+jingle.jsx   its React app (hash routes #/j/<text>/<seed>?knobs)
 engine/      the synth, split into focused ES modules + its test suite
 README.md    what it is + how it works + how to test
 ```
@@ -48,6 +50,14 @@ README.md    what it is + how it works + how to test
 - `encoders.js` — `bufferToWav` / `encodeSong` (+ opus/mp3/webm codecs, muxers).
 - `viz.js` — `fitCanvas` / `drawViz` / `cueAt`.
 - `rng.js`, `theory.js` — seeded RNG + math; scales, meters, arcs, rhythm.
+- `jingle.js` — the jingle maker's engine: text → motif (the K·A·L rule,
+  `letterIndex mod 7`), sections that stack to fit 6–30s, vibe presets, and
+  the versioned URL codec (`#/j/…?v=1`). Renders through `renderSegment` —
+  the real graph + voices, never a mock. Generalized from the `ident-lab`
+  prototype; the five ported leads (chime/marimba/bell/nylon/soft) live in
+  `voices.js` like any other voice. The v1 URL contract is pinned by a
+  bit-exact golden — breaking shared jingle links needs a version bump
+  (v=2) with v1 kept decodable, not a golden re-record.
 - `wordlist.js` / `songcode.js` / `playlist.js` — the day experience:
   4 words = 40 bits = a complete song; (name, date) → the same 12 songs
   forever, with diversity quotas built in (12 distinct leads, all ensembles,
@@ -77,10 +87,11 @@ A **golden-master safety net** guards every change. Framework-free harness
 tested by `foo-test.js`; `test.browser(...)` cases auto-skip without Web Audio.
 
 ```bash
-node engine/tests.mjs         # pure suites (rng, theory, composer, wav, cueAt)
-# browser suites (render, voices, encode): serve, open engine/tests.html (live progress)
-node engine/composer-test.js --record   # re-record a node golden
-#   tests.html?record                    # re-record the browser goldens
+node engine/tests.mjs         # pure suites (rng, theory, composer, wav, cueAt, jingle)
+node engine/tests-browser.mjs # browser suites headless (render, voices, encode, jingle)
+#   … or serve + open engine/tests.html (live progress)
+node engine/composer-test.js --record          # re-record a node golden
+node engine/tests-browser.mjs --record voices  # re-record named browser goldens
 ```
 
 Invariants (these are the *reason* the refactor was safe — keep them green):

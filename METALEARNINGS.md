@@ -70,6 +70,20 @@ correction happens, distill what it *generalizes to* and add it here.
   incremental results as work happens — not just a console log or an end-state
   dump. If a long process only reports at the end, that's a gap to fix.
 
+## Generalize prototypes by porting their verdicts, not just their code
+
+- When a one-off prototype (e.g. ident-lab's sonic logo) graduates into a
+  general feature, its **locked human verdicts become the defaults** of the
+  general thing (the "kal · F · 112 · chime" verdict is the `bright` vibe and
+  the default key). The prototype's creative DNA — mapping rules like
+  letter→degree, envelope shapes, section grammar — is ported faithfully;
+  only the wiring is adapted to the host engine's conventions.
+- "Shareable" implies **deterministic**: if the human asks for a shareable
+  artifact, treat every input (text, knobs, dice) as part of a reproducible,
+  versioned recipe from day one — and pin the recipe contract with tests so a
+  shared URL can never silently change meaning (evolve via version bump, not
+  golden re-record).
+
 ## Ground proposals in the actual code; explain the why
 
 - When suggesting directions (new instruments, optimizations), map them onto the
