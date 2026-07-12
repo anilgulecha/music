@@ -32,7 +32,9 @@ both pre-emptively.
 index.html   CDN shell + importmap ("engine" -> ./engine/engine.js)
 app.jsx      React UI: transport, panels, viz stage, hash router, roster
 jingle.html  the jingle maker: a name → a 6–30s sonic logo (own shell)
-jingle.jsx   its React app (hash routes #/j/<text>/<seed>?knobs)
+jingle.jsx   its React app: a 3-step wizard (tune → band → share); steps 1–2
+             preview instantly via real-engine offline renders (no encode),
+             step 3 bakes an intro sting + the full cut (#/j/<text>/<seed>?knobs)
 engine/      the synth, split into focused ES modules + its test suite
 README.md    what it is + how it works + how to test
 ```
@@ -57,7 +59,11 @@ README.md    what it is + how it works + how to test
   prototype; the five ported leads (chime/marimba/bell/nylon/soft) live in
   `voices.js` like any other voice. The v1 URL contract is pinned by a
   bit-exact golden — breaking shared jingle links needs a version bump
-  (v=2) with v1 kept decodable, not a golden re-record.
+  (v=2) with v1 kept decodable, not a golden re-record. Derivation rules:
+  the motif depends on text+seed only, the answer on tagline+seed — a
+  tagline edit must never change the name's tune. The wizard suggesters
+  (`suggestMotifs` / `suggestArrangements`) and `composeMotif`/`renderMotif`
+  are deterministic but NOT frozen (URLs record chosen knobs explicitly).
 - `wordlist.js` / `songcode.js` / `playlist.js` — the day experience:
   4 words = 40 bits = a complete song; (name, date) → the same 12 songs
   forever, with diversity quotas built in (12 distinct leads, all ensembles,

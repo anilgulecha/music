@@ -55,25 +55,38 @@ still work), plus `#/roster` and `#/about`.
 
 A second, standalone app on the same engine: **a name (+ optional tagline)
 becomes a 6–30 second sonic logo**, generalized from the `ident-lab` prototype
-(the kalviumjr idents).
+(the kalviumjr idents). The UX is a **three-step wizard**:
 
-- **The K·A·L rule:** every letter maps to a scale degree (`letterIndex mod 7`
-  — K→fa, A→do, L→sol; digits and unicode letters map too), the contour is
-  folded singable, a seeded RNG shapes the rhythm. No text ⇒ a pure seeded
-  motif. The tagline becomes an **answering phrase** before the close.
-- **Sections stack to fit the asked length** — statement · restatement (octave
-  double, pad, bass) · turn (IV→V, arps, drums) · answer · close — then the
-  tempo micro-fits (±15%). The **ending** knob resolves home or stays open.
-- **Vibes** are preset bundles (bright = the ident-lab locked verdict · playful
-  · warm · bold · dreamy · classic · desi w/ tabla · minimal); a fine-tune panel
-  exposes the raw knobs (voice, pad, mode, key, tempo, toggles, space).
+1. **The tune** — type a name; six seeded takes on its motif (`name-0…-5`,
+   card 0 anchored on the ident verdict F·major·112, the rest drawing
+   key/mode/tempo/rhythm from `hash(text)^i`), auditioned in your chosen
+   voice. **The K·A·L rule:** every letter maps to a scale degree
+   (`letterIndex mod 7` — K→fa, A→do, L→sol; digits and unicode letters map
+   too). No text ⇒ a pure seeded motif. The tagline becomes an **answering
+   phrase** — and can never change the name's tune (independent derivation).
+2. **The band** — eight arrangements with the **length axis spread by card**
+   (8·10·12·15·18·21·25·30s) and pad / drums / bass / arp / tabla / ending /
+   space seeded per card; an adjust row (length slider + pad) edits the pick.
+3. **Share** — the only step that encodes: an **intro sting** (statement +
+   close, ~6s) and the **full cut**, each downloadable (**mp3 / opus / wav**),
+   plus the link.
+
+Steps 1–2 play instantly on every change (stop prior, play new): previews are
+offline renders through the **real engine** — `renderMotif` / `renderJingle`
+→ `renderSegment` → `graph.js` + `voices.js` — played as raw buffers, cached,
+never mocked, never encoded until step 3.
+
+- Musically, sections stack to fit the asked length — statement · restatement
+  (octave double, pad, bass) · turn (IV→V, arps, drums) · answer · close —
+  then the tempo micro-fits (±15%). The **ending** resolves home or stays open.
 - **One URL = one jingle** (versioned): `jingle.html#/j/<text>/<seed>?v=1&len=…`
-  — identity in the path, knobs in the query. Opening a shared link auto-bakes
-  the exact same audio (byte-identical encodes). Downloads: **mp3 / opus / wav**.
-- Everything renders through the **real engine** — `engine/jingle.js` →
-  `renderSegment` → `graph.js` + `voices.js` — no parallel mock synth. Five
-  lead voices were ported in from ident-lab for it (chime · marimba · bell ·
-  nylon · soft); they're on `#/roster` and in the studio too.
+  — identity in the path, knobs in the query. A shared link lands on step 3
+  already baking the exact same audio (byte-identical encodes) and can step
+  back to remix. The wizard *suggesters* are deterministic but not frozen —
+  URLs always record the chosen knobs explicitly.
+- Five lead voices were ported in from ident-lab for it (chime · marimba ·
+  bell · nylon · soft); they're on `#/roster` and in the studio too.
+  (`JINGLE_VIBES` presets remain in the engine for URL compatibility.)
 
 ## How the studio works: render → encode → play (no live tuning)
 
