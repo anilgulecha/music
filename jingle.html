@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jingle — your sonic logo, made from your name</title>
+
+    <!--
+      Jingle maker — a name (+ optional tagline) becomes a 6–30s sonic logo,
+      rendered offline through the Daysong engine, encoded in-memory, playable
+      and downloadable. One URL = one jingle (#/j/<text>/<seed>?knobs), fully
+      deterministic. Same no-build CDN shell as index.html.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" />
+
+    <style>
+      .ds-serif { font-family: "Fraunces", Georgia, serif; font-optical-sizing: auto; }
+
+      .jg-backdrop {
+        position: fixed; inset: 0; z-index: -1; pointer-events: none;
+        background:
+          radial-gradient(1000px 650px at 90% -10%, hsl(265 85% 80% / 0.4), transparent 60%),
+          radial-gradient(900px 600px at -10% 105%, hsl(35 85% 80% / 0.5), transparent 62%),
+          linear-gradient(168deg, hsl(45 70% 96%), hsl(45 55% 90%));
+      }
+
+      @keyframes dsUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+      .ds-up { animation: dsUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+      @keyframes jgBake { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.55); opacity: 1; } }
+      .jg-baking { animation: jgBake 1.1s ease-in-out infinite; }
+    </style>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+          "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
+          "engine": "./engine/engine.js"
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  </head>
+  <body class="text-base-content min-h-screen">
+    <div id="root">
+      <div class="min-h-screen flex items-center justify-center">
+        <span class="loading loading-dots loading-lg" aria-busy="true"></span>
+      </div>
+    </div>
+
+    <script type="text/babel" data-type="module" data-presets="react" src="./jingle.jsx"></script>
+  </body>
+</html>
