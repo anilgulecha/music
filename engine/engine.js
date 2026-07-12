@@ -15,6 +15,7 @@
      viz.js        fitCanvas / drawViz / cueAt
      rng.js        seeded RNG + math utils
      theory.js     scales, meters, arcs, rhythm helpers
+     jingle.js     composeJingle / renderJingle + URL codec  (jingle.html)
      wordlist.js   the frozen 1024-word list (10 bits/word)
      songcode.js   4 words = 40 bits = a complete good-mood song
      playlist.js   (name, date) -> the same 12 songs, forever + page hues
@@ -25,3 +26,8 @@ export { bufferToWav, encodeSong } from "./encoders.js";
 export { fitCanvas, drawViz, cueAt } from "./viz.js";
 export { codeToWords, wordsToCode, decodeSong } from "./songcode.js";
 export { playlistFor, identityHues, normalizeName, dateCode, PLAYLIST_SIZE } from "./playlist.js";
+export {
+  composeJingle, renderJingle, motifFromText, normalizeJingleSpec,
+  jingleToHash, jingleFromHash,
+  JINGLE_VIBES, JINGLE_LEADS, JINGLE_PADS, JINGLE_ENDINGS, JINGLE_LENGTH, JINGLE_VERSION,
+} from "./jingle.js";

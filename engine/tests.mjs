@@ -13,3 +13,4 @@ import "./viz-test.js";
 import "./encoders-test.js";
 import "./render-test.js";
 import "./voices-test.js";
+import "./jingle-test.js";
